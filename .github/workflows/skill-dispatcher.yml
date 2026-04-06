@@ -1,0 +1,82 @@
+name: Skill Dispatcher
+
+on:
+  repository_dispatch:
+    types: ['execute-skill']
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CORRELATION_ID: ${{ github.event.client_payload.correlation_id }}
+      SKILL_NAME: ${{ github.event.client_payload.skill_name }}
+      SKILL_INPUT: ${{ toJson(github.event.client_payload.params) }}
+      UPLOAD_URLS: ${{ toJson(github.event.client_payload.upload_urls) }}
+      WEBHOOK_URL: ${{ github.event.client_payload.webhook_url }}
+      WEBHOOK_SECRET: ${{ secrets.SKILL_WEBHOOK_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate skill exists
+        run: |
+          SKILL_DIR="skills/${SKILL_NAME}/scripts"
+          if [ ! -d "$SKILL_DIR" ]; then
+            echo "::error::Skill directory not found: $SKILL_DIR"
+            exit 1
+          fi
+          echo "SKILL_DIR=${SKILL_DIR}" >> $GITHUB_ENV
+
+      - name: Setup Python
+        if: hashFiles(format('skills/{0}/scripts/requirements.txt', github.event.client_payload.skill_name)) != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js
+        if: hashFiles(format('skills/{0}/scripts/package.json', github.event.client_payload.skill_name)) != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ${{ env.SKILL_DIR }}
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f "package.json" ]; then
+            npm install
+          fi
+
+      - name: Execute skill
+        working-directory: ${{ env.SKILL_DIR }}
+        env:
+          # ===== 在此添加你的 API Key Secrets =====
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # ========================================
+        run: |
+          if [ -f "main.py" ]; then
+            python main.py
+          elif [ -f "main.sh" ]; then
+            bash main.sh
+          elif [ -f "main.ts" ]; then
+            npx tsx main.ts
+          elif [ -f "main.js" ]; then
+            node main.js
+          else
+            echo "::error::No entry script found (main.py, main.sh, main.ts, main.js)"
+            exit 1
+          fi
+
+      - name: Notify success
+        if: success()
+        run: bash "${GITHUB_WORKSPACE}/lib/common/notify-webhook.sh" "completed"
+
+      - name: Notify failure
+        if: failure()
+        run: bash "${GITHUB_WORKSPACE}/lib/common/notify-webhook.sh" "failed"
