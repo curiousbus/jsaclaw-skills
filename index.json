@@ -1,0 +1,5 @@
+[
+  { "name": "image-generator", "summary": "图片生成" },
+  { "name": "text-to-speech", "summary": "文字转语音" },
+  { "name": "video-creator", "summary": "视频生成" }
+]
