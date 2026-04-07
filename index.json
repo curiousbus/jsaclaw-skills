@@ -1,5 +1,12 @@
 [
+  { "name": "ampm-newsletter-podcast", "summary": "Doubao Podcast Skill" },
+  { "name": "bookmark", "summary": "Bookmark Skill" },
+  { "name": "deep-podcast", "summary": "Deep Podcast Skill" },
+  { "name": "dream", "summary": "Dream Skill - 小虾的「做梦」功能" },
+  { "name": "earnings", "summary": "Earnings Skill - 财报监控 Skill" },
   { "name": "image-generator", "summary": "图片生成" },
+  { "name": "openmaic", "summary": "OpenMAIC 课程生成器" },
+  { "name": "pdf-report", "summary": "PDF Report Generator" },
   { "name": "text-to-speech", "summary": "文字转语音" },
   { "name": "video-creator", "summary": "视频生成" }
 ]
